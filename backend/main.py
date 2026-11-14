@@ -3,16 +3,20 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from fastapi.middleware.cors import CORSMiddleware
+
 from database import engine, Base, get_db
-from models import Producto
+from models import Producto, Usuario
+from auth_routes import router as auth_router, get_current_user
 from schemas import ProductoCrear, ProductoRespuesta
+
 
 app = FastAPI(
     title="API de Gestión de Inventario",
-    description="Sistema de inventario con FastAPI y SQLite",
+    description="Sistema de inventario con FastAPI, SQLite y autenticación JWT",
     version="1.0.0"
 )
 
+app.include_router(auth_router)
 Base.metadata.create_all(bind=engine)
 
 
@@ -26,14 +30,23 @@ def inicio():
 
 # 1. LISTAR PRODUCTOS
 @app.get("/api/productos", response_model=list[ProductoRespuesta])
-def listar_productos(db: Session = Depends(get_db)):
+def listar_productos(
+    db: Session = Depends(get_db),
+    usuario_actual: Usuario = Depends(get_current_user)
+):
     return db.query(Producto).all()
 
 
 # 2. CONSULTAR PRODUCTO POR ID
-@app.get("/api/productos/{producto_id}",
-         response_model=ProductoRespuesta)
-def obtener_producto(producto_id: int, db: Session = Depends(get_db)):
+@app.get(
+    "/api/productos/{producto_id}",
+    response_model=ProductoRespuesta
+)
+def obtener_producto(
+    producto_id: int,
+    db: Session = Depends(get_db),
+    usuario_actual: Usuario = Depends(get_current_user)
+):
     producto = db.get(Producto, producto_id)
 
     if producto is None:
@@ -53,7 +66,8 @@ def obtener_producto(producto_id: int, db: Session = Depends(get_db)):
 )
 def crear_producto(
     datos: ProductoCrear,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    usuario_actual: Usuario = Depends(get_current_user)
 ):
     nuevo_producto = Producto(**datos.model_dump())
 
@@ -73,12 +87,15 @@ def crear_producto(
 
 
 # 4. ACTUALIZAR PRODUCTO
-@app.put("/api/productos/{producto_id}",
-         response_model=ProductoRespuesta)
+@app.put(
+    "/api/productos/{producto_id}",
+    response_model=ProductoRespuesta
+)
 def actualizar_producto(
     producto_id: int,
     datos: ProductoCrear,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    usuario_actual: Usuario = Depends(get_current_user)
 ):
     producto = db.get(Producto, producto_id)
 
@@ -108,7 +125,8 @@ def actualizar_producto(
 @app.delete("/api/productos/{producto_id}")
 def eliminar_producto(
     producto_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    usuario_actual: Usuario = Depends(get_current_user)
 ):
     producto = db.get(Producto, producto_id)
 
@@ -123,6 +141,8 @@ def eliminar_producto(
 
     return {"mensaje": "Producto eliminado correctamente"}
 
+
+# CONFIGURACIÓN CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

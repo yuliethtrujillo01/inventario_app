@@ -1,21 +1,11 @@
 
 import 'package:dio/dio.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import '../models/producto_model.dart';
+import 'api_service.dart';
 
 class ProductoService {
-  late final Dio _dio;
-
-  ProductoService() {
-    _dio = Dio(
-      BaseOptions(
-        baseUrl: dotenv.get('API_URL'),
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 10),
-      ),
-    );
-  }
+  final Dio _dio = ApiService().dio;
 
   // GET: listar todos los productos
   Future<List<Producto>> obtenerProductos() async {

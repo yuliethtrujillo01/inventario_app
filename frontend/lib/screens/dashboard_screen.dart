@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../models/producto_model.dart';
 import '../services/producto_service.dart';
+import '../services/auth_service.dart';
 import '../utils/formato_moneda.dart';
 import '../widgets/app_bottom_navigation.dart';
 import 'producto_form_screen.dart';
@@ -22,6 +23,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   static const fondo = Color(0xFFF3F6FB);
 
   final ProductoService _service = ProductoService();
+  final AuthService _authService = AuthService();
   late Future<List<Producto>> _productosFuture;
 
   @override
@@ -39,6 +41,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _cargarProductos();
     });
   }
+  Future<void> _cerrarSesion() async {
+  final confirmar = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Cerrar sesión'),
+      content: const Text(
+        '¿Estás seguro de que deseas cerrar tu sesión?',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, true),
+          child: const Text('Cerrar sesión'),
+        ),
+      ],
+    ),
+  );
+
+  if (confirmar != true) return;
+
+  try {
+    await _authService.cerrarSesion();
+
+    if (!mounted) return;
+
+    context.go('/login');
+  } catch (e) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('No se pudo cerrar la sesión: $e'),
+      ),
+    );
+  }
+}
 
   Future<void> _nuevoProducto() async {
     final registrado = await Navigator.push<bool>(
@@ -288,12 +329,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
         actions: [
-          IconButton(
-            tooltip: 'Actualizar inventario',
-            onPressed: _actualizar,
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
+  IconButton(
+    tooltip: 'Actualizar inventario',
+    onPressed: _actualizar,
+    icon: const Icon(Icons.refresh),
+  ),
+  IconButton(
+    tooltip: 'Cerrar sesión',
+    onPressed: _cerrarSesion,
+    icon: const Icon(Icons.logout),
+  ),
+],
       ),
       bottomNavigationBar: AppBottomNavigation(
         currentIndex: 0,

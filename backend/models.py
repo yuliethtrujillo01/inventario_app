@@ -1,5 +1,5 @@
 
-from sqlalchemy import Column, Integer, String, Numeric
+from sqlalchemy import Column, Integer, String, Numeric, Boolean
 from database import Base
 
 
@@ -13,3 +13,13 @@ class Producto(Base):
     precio = Column(Numeric(12, 2), nullable=False)
     cantidad = Column(Integer, nullable=False)
     categoria = Column(String, nullable=False)
+
+
+class Usuario(Base):
+    __tablename__ = "usuarios"
+
+    id = Column(Integer, primary_key=True, index=True)
+    nombre = Column(String, nullable=False)
+    correo = Column(String, unique=True, index=True, nullable=False)
+    password_hash = Column(String, nullable=False)
+    activo = Column(Boolean, default=True, nullable=False)
